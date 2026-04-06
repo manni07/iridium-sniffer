@@ -24,9 +24,11 @@ Native GSMTAP output (`--gsmtap`) sends decoded IDA (Iridium Data) frames direct
 - GPU-accelerated FFT burst detection (OpenCL or Vulkan)
 - ZMQ PUB/SUB output (`--zmq`) for multi-consumer iridium-toolkit compatibility
 - ZMQ SUB and VITA 49 (VRT) network IQ input for remote SDR and distributed setups
+- BaseStation (SBS) aircraft position feed for VRS, tar1090, and other tracking tools
+- Aircraft position extraction from ACARS free text (H1/POS, label 20, 44, 4J, 15, SA)
 - Multi-threaded architecture: detection, downmix pool, demodulation, stats
 - HackRF, BladeRF, USRP, SDRplay, and SoapySDR support
-- Reads ci8, ci16, and cf32 IQ files with auto-detection from file extension
+- Reads ci8, ci16, and cf32 IQ files with SigMF metadata auto-detection
 
 ## Installation
 
@@ -547,6 +549,38 @@ Add `--acars` for human-readable text output locally while feeding:
 
 - `--acars-json` / `--acars-udp` output a **dumpvdl2/dumphfdl envelope format** (`"iridium"` as the top-level key, matching the structure of dumpvdl2's `"vdl2"` and dumphfdl's `"hfdl"`). This is a richer, more structured format with full libacars ARINC-622 decoding. Once aggregator sites accept the dumpvdl2 envelope, `--feed` will adopt it and `--acars-udp` can be retired -- `--feed` remains the single flag for feeding aggregators regardless of which wire format it carries.
 
+## BaseStation (SBS) Aircraft Position Feed
+
+Output decoded aircraft positions in BaseStation MSG,3 format for integration with VRS (Virtual Radar Server), tar1090, PlanePlotter, and other tracking tools. Aircraft registrations are mapped to real ICAO hex addresses using the tar1090-db aircraft database (568K+ entries).
+
+```bash
+# Download aircraft database (one time, ~33 MB)
+./iridium-sniffer --update-db
+
+# Server mode: tracking tools connect to port 30003
+./iridium-sniffer -i soapy-0 --acars --basestation --web
+
+# Push to a remote aggregator
+./iridium-sniffer -i soapy-0 --acars --basestation=192.168.1.50:30003 --web
+
+# Custom server port
+./iridium-sniffer -i soapy-0 --acars --basestation=30006 --web
+```
+
+Output format (one line per position):
+```
+MSG,3,1,1,A98539,1,2026/04/06,00:15:54.000,2026/04/06,00:15:54.000,UAL928,37000,,,52.000,-40.000,,,,0
+```
+
+Three position sources feed the output, in priority order:
+1. **ADS-C GPS** -- structured position from ARINC-622 ADS-C reports (requires libacars)
+2. **ACARS free text** -- position extracted from known message labels (H1/POS, label 20, 44, 4J, 15, SA)
+3. **Beam estimate** -- approximate position from IRA ground beam correlation (~200 km accuracy)
+
+The aircraft database is stored at `~/.iridium-sniffer/aircraft.csv` and can be updated at any time with `--update-db`. Use `--aircraft-db=PATH` to specify a custom path.
+
+In push mode (`--basestation=HOST:PORT`), the connection auto-reconnects if dropped.
+
 ## Parsed IDA Output
 
 The `--parsed` flag enables internal IDA frame decoding and outputs parsed IDA lines directly to stdout. This was added primarily for recovering ACARS, SBD, and other IDA-based message content without requiring the external Python `iridium-parser.py` pipeline.
@@ -855,6 +889,12 @@ ZMQ:
 VITA 49:
     --vita49[=IP:PORT]      receive IQ via VITA 49 (VRT) UDP (default: 0.0.0.0:4991)
                              auto-detects -r, -c, and format from VRT context packets
+
+BaseStation:
+    --basestation[=PORT]    SBS server on PORT (default 30003, tools connect in)
+    --basestation=HOST:PORT SBS push to remote host (auto-reconnect)
+    --aircraft-db=PATH      aircraft database CSV (default: ~/.iridium-sniffer/aircraft.csv)
+    --update-db             download/update aircraft database from tar1090-db and exit
 
 Output:
     --file-info=STR         file info string for RAW output (default: auto)
