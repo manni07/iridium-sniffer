@@ -121,6 +121,9 @@ set(SOURCES
     ${PROJECT_SOURCE_DIR}/vita49.c
     ${PROJECT_SOURCE_DIR}/sigmf.c
     ${PROJECT_SOURCE_DIR}/cJSON.c
+    ${PROJECT_SOURCE_DIR}/aircraft_db.c
+    ${PROJECT_SOURCE_DIR}/basestation.c
+    ${PROJECT_SOURCE_DIR}/waypoint_db.c
 )
 
 # SIMD kernels (x86 only, compiled with specific ISA flags, runtime-detected)
