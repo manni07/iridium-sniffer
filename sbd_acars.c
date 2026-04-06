@@ -18,6 +18,8 @@
 #include <errno.h>
 #include <netdb.h>
 #include <netinet/in.h>
+
+#include "basestation.h"
 #include <netinet/tcp.h>
 #include <pthread.h>
 #include <stdarg.h>
@@ -45,6 +47,7 @@
 int acars_json = 0;
 extern int acars_enabled;
 extern int web_enabled;
+extern int basestation_enabled;
 static const char *station = NULL;
 
 /* Beam cache lookup from main.c -- provides approximate aircraft position
@@ -897,11 +900,15 @@ static void acars_parse_libacars(const uint8_t *data, int len, int ul,
             while (*tail == '.') tail++;
             const char *flt = adsc_flt[0] ? adsc_flt :
                               (msg->flight_id[0] ? msg->flight_id : "");
-            if (*tail)
+            if (*tail) {
                 web_map_add_aircraft(tail, flt, pos_lat, pos_lon,
                                      pos_sat, pos_beam, timestamp, frequency,
                                      adsc_alt, adsc_pos,
                                      oooi_str[0] ? oooi_str : NULL);
+                if (basestation_enabled)
+                    basestation_send_position(tail, flt, pos_lat, pos_lon,
+                                              adsc_alt, timestamp);
+            }
         }
     }
 
@@ -1355,13 +1362,20 @@ static void acars_parse_fallback(const uint8_t *data, int len, int ul,
                 web_map_add_aircraft(reg_f, "", pos_lat, pos_lon,
                                      bc_sat, bc_beam, timestamp, frequency,
                                      -99999, 1, NULL);
+                if (basestation_enabled)
+                    basestation_send_position(reg_f, "", pos_lat, pos_lon,
+                                              -99999, timestamp);
             } else {
                 double bc_lat, bc_lon;
                 if (beam_cache_lookup(timestamp, &bc_lat, &bc_lon,
-                                      &bc_sat, &bc_beam))
+                                      &bc_sat, &bc_beam)) {
                     web_map_add_aircraft(reg_f, "", bc_lat, bc_lon,
                                          bc_sat, bc_beam, timestamp, frequency,
                                          -99999, 0, NULL);
+                    if (basestation_enabled)
+                        basestation_send_position(reg_f, "", bc_lat, bc_lon,
+                                                  -99999, timestamp);
+                }
             }
         }
     }

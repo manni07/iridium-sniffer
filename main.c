@@ -55,6 +55,8 @@
 #include "sbd_acars.h"
 #include "fftw_lock.h"
 #include "simd_kernels.h"
+#include "aircraft_db.h"
+#include "basestation.h"
 #include <fftw3.h>
 
 /* FFTW planner mutex (defined here, declared in fftw_lock.h) */
@@ -182,6 +184,11 @@ char *zmq_sub_endpoint = NULL;
 /* VITA 49 (VRT) UDP input */
 int vita49_enabled = 0;
 char *vita49_endpoint = NULL;
+
+/* BaseStation (SBS) output */
+int basestation_enabled = 0;
+char *basestation_endpoint = NULL;
+char *aircraft_db_path = NULL;
 
 /* Track whether -r, -c, --format were explicitly set (for VITA 49 auto-config) */
 int samp_rate_explicit = 0;
@@ -876,6 +883,20 @@ int main(int argc, char **argv) {
             errx(1, "Failed to start web map server on port %d", web_port);
     }
 
+    if (basestation_enabled) {
+        /* Load aircraft database */
+        const char *dbpath = aircraft_db_path ? aircraft_db_path
+                                               : aircraft_db_default_path();
+        if (!dbpath || aircraft_db_load(dbpath) < 0) {
+            fprintf(stderr, "basestation: no aircraft database found\n"
+                    "  Run: iridium-sniffer --update-db\n"
+                    "  Or specify: --aircraft-db=PATH\n");
+            /* Continue without database -- positions will be skipped */
+        }
+        if (basestation_init(basestation_endpoint) != 0)
+            errx(1, "Failed to start basestation output");
+    }
+
     if (gsmtap_enabled) {
         if (gsmtap_init(gsmtap_host, gsmtap_port) != 0)
             errx(1, "Failed to initialize GSMTAP socket");
@@ -1141,6 +1162,11 @@ int main(int argc, char **argv) {
 
     if (web_enabled)
         web_map_shutdown();
+
+    if (basestation_enabled) {
+        basestation_destroy();
+        aircraft_db_destroy();
+    }
 
     if (gsmtap_enabled) {
         fprintf(stderr, "iridium-sniffer: sent %lu GSMTAP packets\n",
