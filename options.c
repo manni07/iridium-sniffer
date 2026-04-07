@@ -453,10 +453,12 @@ void parse_options(int argc, char **argv) {
                     simd_mode = SIMD_AVX2;
                 else if (strcmp(optarg, "sse42") == 0 || strcmp(optarg, "sse4.2") == 0)
                     simd_mode = SIMD_SSE42;
+                else if (strcmp(optarg, "neon") == 0)
+                    simd_mode = SIMD_NEON;
                 else if (strcmp(optarg, "scalar") == 0 || strcmp(optarg, "none") == 0)
                     simd_mode = SIMD_SCALAR;
                 else
-                    errx(1, "Unknown --simd mode '%s'. Use auto, avx2, sse42, or scalar.",
+                    errx(1, "Unknown --simd mode '%s'. Use auto, avx2, sse42, neon, or scalar.",
                          optarg);
                 break;
             case OPT_CHASE:
