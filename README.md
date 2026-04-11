@@ -88,7 +88,9 @@ CMake output shows what was detected:
 -- GPU acceleration: OpenCL
 ```
 
-### Raspberry Pi 5 / ARM
+### Low-Power Hardware (N100, Pi 5, ARM)
+
+The downmix worker count auto-scales based on CPU cores: 4 workers on 8+ cores, 2 on 4 cores, 1 on 2 cores. On low-power CPUs like the Intel N100 (4 cores), this prevents 100% CPU saturation that occurs when 4 workers compete for 4 cores. Override with `--workers=N` if needed.
 
 The Pi 5's VideoCore VII GPU passes basic Vulkan compute tests but cannot sustain the throughput needed for real-time FFT batch processing. Build CPU-only and use `--no-gpu`:
 
