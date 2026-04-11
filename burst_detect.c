@@ -24,6 +24,10 @@
 #include <dlfcn.h>
 #include <fftw3.h>
 
+#ifdef __APPLE__
+#include <mach-o/dyld.h>
+#endif
+
 #include "config.h"
 
 #include "burst_detect.h"
@@ -184,6 +188,8 @@ static int gpu_plugin_load(burst_detector_t *d)
     /* Try next to the executable first, then standard paths */
     char exe_path[4096] = {0};
     char exe_dir_lib[4096] = {0};
+
+    #ifdef __linux__
     ssize_t len = readlink("/proc/self/exe", exe_path, sizeof(exe_path) - 1);
     if (len > 0) {
         exe_path[len] = '\0';
@@ -194,6 +200,17 @@ static int gpu_plugin_load(burst_detector_t *d)
                      "%s/" GPU_PLUGIN_NAME, exe_path);
         }
     }
+#elif defined(__APPLE__)
+    uint32_t exe_path_size = sizeof(exe_path);
+    if (_NSGetExecutablePath(exe_path, &exe_path_size) == 0) {
+        char *slash = strrchr(exe_path, '/');
+        if (slash) {
+            *slash = '\0';
+            snprintf(exe_dir_lib, sizeof(exe_dir_lib),
+                     "%s/" GPU_PLUGIN_NAME, exe_path);
+        }
+    }
+#endif
 
     const char *names[] = {
         exe_dir_lib[0] ? exe_dir_lib : NULL, /* next to executable */

@@ -110,6 +110,14 @@ else()
     set(OPENCL_DEFAULT OFF)
 endif()
 
+# On macOS, OpenCL is deprecated since 10.14 — it is a thin Metal shim with
+# high per-dispatch overhead that benchmarks slower than the NEON CPU path on
+# Apple Silicon.  Disable it by default.  Override with -DUSE_OPENCL=ON.
+if(APPLE AND OPENCL_DEFAULT)
+    message(STATUS "OpenCL deprecated on macOS — disabled by default. Override with -DUSE_OPENCL=ON.")
+    set(OPENCL_DEFAULT OFF)
+endif()
+
 option(USE_OPENCL "Use OpenCL GPU acceleration for burst detection" ${OPENCL_DEFAULT})
 option(USE_VULKAN "Use Vulkan GPU acceleration for burst detection" OFF)
 
