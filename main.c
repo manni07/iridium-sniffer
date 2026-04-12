@@ -255,7 +255,7 @@ pid_t self_pid;
 #define BURST_QUEUE_SIZE   2048
 #define FRAME_QUEUE_SIZE   512
 #define OUTPUT_QUEUE_SIZE  1024
-#define MAX_DOWNMIX_WORKERS 8
+#define MAX_DOWNMIX_WORKERS 32
 int num_downmix_workers = 0;  /* 0 = auto-detect from CPU cores */
 Blocking_Queue samples_queue;
 Blocking_Queue burst_queue;

@@ -169,7 +169,7 @@ static void usage(int exitcode) {
 "    --no-gpu                disable GPU acceleration (use CPU FFTW)\n"
 "    --simd=MODE             SIMD kernel selection: auto (default), avx2, sse42, neon, scalar\n"
 "    --no-simd               alias for --simd=scalar\n"
-"    --workers=N             downmix worker threads (default: auto from CPU cores)\n"
+"    --workers=N             downmix worker threads (1-32, default: auto from CPU cores)\n"
 "    --chase[=N]             enable Chase soft-decision BCH decoder (experimental)\n"
 "                             N = flip-bits count, 0-7 (default 5 = 31 combos).\n"
 "                             0 or omitting --chase disables (default).\n"
@@ -650,8 +650,8 @@ void parse_options(int argc, char **argv) {
 
             case OPT_WORKERS: {
                 int w = atoi(optarg);
-                if (w < 1 || w > 8)
-                    errx(1, "--workers must be 1-8");
+                if (w < 1 || w > 32)
+                    errx(1, "--workers must be 1-32");
                 num_downmix_workers = w;
                 break;
             }
